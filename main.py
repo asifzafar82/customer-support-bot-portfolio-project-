@@ -3,9 +3,9 @@ import textwrap
 from typing import List, Dict, Optional
 
 try:
-    import openai
+    from openai import OpenAI
 except ImportError:
-    openai = None
+    OpenAI = None
 
 PROJECT_NAME = "Customer Support Prompt Engineering Bot"
 
@@ -98,7 +98,7 @@ def summarize_prompt_design(user_message: str, category: Optional[str] = None) -
     prompt_parts.append(f"User input: {user_message}")
     prompt_parts.append("Output style: bullet points when providing steps, short summary, polite close.")
 
-    return " \n".join(prompt_parts)
+    return "\n".join(prompt_parts)
 
 
 def show_prompt_engineering_tips() -> None:
@@ -131,7 +131,7 @@ def choose_category() -> Optional[str]:
 
 
 def call_openai(messages: List[Dict[str, str]]) -> str:
-    if openai is None:
+    if OpenAI is None:
         raise ImportError(
             "The openai package is not installed. Install it with `pip install openai`."
         )
@@ -139,11 +139,12 @@ def call_openai(messages: List[Dict[str, str]]) -> str:
     api_key = get_api_key()
     if not api_key:
         raise ValueError(
-            "OPENAI_API_KEY is not set. Export it in your environment before running the bot."
+            "OPENAI_API_KEY is not set. Export it in your environment before running the bot.\n"
+            "Example: export OPENAI_API_KEY='sk-...'"
         )
 
-    openai.api_key = api_key
-    response = openai.ChatCompletion.create(
+    client = OpenAI(api_key=api_key)
+    response = client.chat.completions.create(
         model="gpt-4o-mini",
         messages=messages,
         max_tokens=400,
@@ -167,6 +168,10 @@ def run_chat_loop() -> None:
         choice = input("Choose an option: ").strip()
         if choice == "1":
             user_message = input("\nEnter the customer's issue: ").strip()
+            if not user_message:
+                print("Please enter a valid issue.")
+                continue
+                
             category = choose_category()
             messages = build_prompt(user_message, category)
             print("\n[Prompt design summary]")
@@ -177,6 +182,8 @@ def run_chat_loop() -> None:
                 reply = call_openai(messages)
                 print("\nBot response:\n")
                 print(reply)
+            except ValueError as e:
+                print(f"Configuration error: {e}")
             except Exception as error:
                 print(f"Error: {error}")
                 print("If you want to skip OpenAI, inspect the prompt design instead.")
@@ -185,6 +192,9 @@ def run_chat_loop() -> None:
             show_prompt_engineering_tips()
         elif choice == "3":
             sample = input("\nEnter a sample customer issue to preview prompt design: ").strip()
+            if not sample:
+                print("Please enter a valid issue.")
+                continue
             category = choose_category()
             print("\nGenerated prompt design:\n")
             print(summarize_prompt_design(sample, category))
