@@ -1,0 +1,14 @@
+# render.yaml - Render deployment configuration
+# This file tells Render how to deploy your project
+
+services:
+  - type: web
+    name: customer-support-bot
+    runtime: python
+    pythonVersion: 3.11
+    startCommand: python main.py
+    envVars:
+      - key: OPENAI_API_KEY
+        scope: run
+        sync: false  # Don't commit this to git; set it in Render dashboard
+    buildCommand: pip install -r requirements.txt
